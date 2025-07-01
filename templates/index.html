@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+{% extends 'base.html' %}
+{% block content %}
+
+<html>
+<head>
+  <title>HRM Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <br><br>
+  <!-- Flash Cards -->
+<div class="row text-center mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm flash-card">
+          <div class="card text-white bg-success text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ onboarded_label }}</h5>
+
+                <h3>{{ active_employees }}</h3>
+            </div>
+        </div>
+          </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm flash-card">
+          <div class="card text-white bg-danger text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ attrited_label }}</h5>
+                <h3>{{ attrited_employees }}</h3>
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm flash-card">
+          <div class="card text-white bg-danger text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ attrition_label}}</h5>
+                <h3>{{ attrition_rate }}%</h3>
+            </div>
+        </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm flash-card">
+          <div class="card text-white bg-success text-center">
+            <div class="card-body">
+                <h5 class="card-title">Avg Tenure (Yrs)</h5>
+                <h3>{{ average_tenure }}</h3>
+            </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+  <!-- Filters & View -->
+  <!---Onboarding & Attrition buttons--->
+
+
+
+<form method="get" action="/">
+    <div>
+    <div class="row text-center mb-4">
+    <div class="btn-group" role="group" aria-label="View toggle">
+    <input type="radio" class="btn-check" name="view" id="btn-onboarding" value="onboarding" autocomplete="off"
+           {% if view_type =='onboarding' %}checked{% endif %}>
+    <label class="btn btn-outline-primary" for="btn-onboarding">Onboarding</label>
+
+    <input type="radio" class="btn-check" name="view" id="btn-attrition" value="attrition" autocomplete="off"
+           {% if view_type =='attrition' %}checked{% endif %}>
+    <label class="btn btn-outline-danger" for="btn-attrition">Attrition</label>
+  </div>
+    </div>
+</div>
+  <div class="row mb-4">
+      <div class="col-md-3">
+          <label class="form-label">Department</label>
+          <select name="Department" class="form-select">
+      <option value="">All</option>
+      {% for dept in Departments %}
+        <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
+      {% endfor %}
+    </select>
+<!---date select-->
+
+  <div class="col-md-6">
+    <label for="start_date" class="form-label">From Date</label>
+    <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+  </div>
+
+  <div class="col-md-6">
+    <label for="end_date" class="form-label">To Date</label>
+    <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+  </div>
+</div>
+      <!-- years drop down-->
+      <div class="col-md-3">
+          <label class="form-label">Years</label>
+            <select name="year" class="form-select">
+             <option value="">All</option>
+             {% for y in years %}
+             <option value="{{ y }}" {% if y|string == selected_year %}selected{% endif %}>{{ y }}</option>
+             {% endfor %}
+            </select>
+<!-- quater drop down-->
+      <div class="col-md-12">
+          <label class="form-label">Quarter</label>
+          <select name="quarter" class="form-select">
+              <option value="">All</option>
+              <option value="Q1" {% if quarter =="Q1" %}selected{% endif %}>Q1</option>
+              <option value="Q2" {% if quarter =="Q2" %}selected{% endif %}>Q2</option>
+              <option value="Q3" {% if quarter =="Q3" %}selected{% endif %}>Q3</option>
+              <option value="Q4" {% if quarter =="Q4" %}selected{% endif %}>Q4</option>
+          </select>
+      </div>
+  <div class="container">
+  <div class="row mb-5">
+<div class="d-flex justify-content-center mt-3 gap-2">
+  <button type="submit" class="btn btn-primary">Apply Filters</button>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Reset</a>
+</div></div></div>
+    <!-- View Toggle -->
+  </div>
+      <!---mode of exit filter-->
+<div class="col-md-5">
+<div class="col-md-3">
+  <label for="mode_of_exit" class="form-label">Mode of Exit</label>
+  <select name="mode_of_exit" id="mode_of_exit" class="form-select">
+    <option value="">All</option>
+    <option value="Resigned" {% if selected_mode =='Resigned' %}selected{% endif %}>Resigned</option>
+    <option value="Retired" {% if selected_mode =='Retired' %}selected{% endif %}>Retired</option>
+    <option value="Transferred" {% if selected_mode =='Transferred' %}selected{% endif %}>Transferred</option>
+    <option value="Expired" {% if selected_mode =='Expired' %}selected{% endif %}>Expired</option>
+    <option value="Abscond" {% if selected_mode =='Abscond' %}selected{% endif %}>Abscond</option>
+  </select>
+</div>
+
+    <!-- Location Checkbox -->
+<div class="col-md-12">
+  <label class="form-label">Location</label>
+  <div class="border rounded p-2" style="max-height: 200px; width: 100%; min-width: 400px; overflow-y: auto;">
+    {% for loc in locations %}
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="location" value="{{ loc }}"
+               id="loc_{{ loop.index }}"
+               {% if loc in selected_locs %}checked{% endif %}>
+        <label class="form-check-label" for="loc_{{ loop.index }}">
+          {{ loc }}
+        </label>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+  </div>
+
+    <br><br>
+
+
+    <!-- Trend View -->
+  <!-- Row 1: Trend Chart -->
+<div class="row text-center mb-4">
+    <div class="col-md-12">
+      <div class="card shadow p-3">
+        <h5 class="card-title">Trend Over Time</h5>
+        <div id="trend_chart">{{ trend_chart | safe }}</div>
+      </div>
+    </div>
+  </div>
+  <!-- Timeline Chart -->
+  {% if timeline_chart %}
+    <div id="timeline_chart"></div>
+    <script>
+      var timeline_chart = {{ timeline_chart | safe }};
+      Plotly.newPlot('timeline_chart', timeline_chart.data, timeline_chart.layout);
+    </script>
+  {% endif %}
+  <!-- Reason Chart Block -->
+<!-- Onboarding Reason Chart -->
+{% if view_type == 'onboarding' and onboarding_reason_chart %}
+  <div id="onboarding_reason_chart"></div>
+  <script>
+    var onboarding_reason_chart = {{ onboarding_reason_chart | safe }};
+    Plotly.newPlot('onboarding_reason_chart', onboarding_reason_chart.data, onboarding_reason_chart.layout);
+  </script>
+{% elif view_type == 'onboarding' %}
+  <p style="color: gray;"></p>
+{% endif %}
+  <!-- Main Chart Blocks -->
+  {% if view_type == 'onboarding' and onboarding_chart %}
+    <div id="onboarding_chart"></div>
+    <script>
+      var onboarding_chart = {{ onboarding_chart | safe }};
+      Plotly.newPlot('onboarding_chart', onboarding_chart.data, onboarding_chart.layout);
+    </script>
+  {% endif %}
+
+  {% if view_type == 'attrition' and attrition_chart %}
+      <div class="col-md-12">
+    <div id="attrition_chart"></div>
+    <script>
+      var attrition_chart = {{ attrition_chart | safe }};
+      Plotly.newPlot('attrition_chart', attrition_chart.data, attrition_chart.layout);
+    </script>
+      </div>
+  {% endif %}
+      <!---mode of exit chart-->
+      {% if view_type == 'attrition' and mode_exit_chart %}
+    <div class="col-md-12">
+        <div id="modeExitChart"></div>
+        <script>
+            Plotly.newPlot('modeExitChart', {{ mode_exit_chart | safe }});
+        </script>
+    </div>
+{% endif %}
+
+
+  <!-- Department-wise Attrition Table -->
+<h3>Department-wise Attrition Table</h3>
+<div class="table-responsive">
+  <table class="table table-bordered table-striped">
+    <thead class="thead-dark">
+      <tr>
+        <th>Department</th>
+        <th>Onboarded</th>
+        <th>Attrited</th>
+        <th>Attrition Rate (%)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in dept_attrition_data %}
+      <tr>
+        <td>{{ row.Department }}</td>
+        <td>{{ row.onboarded }}</td>
+        <td>{{ row.attrited }}</td>
+        <td>{{ row.attrition_rate }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<h3> Filtered Employee Data</h3>
+
+<div style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+  <table class="table table-sm table-bordered table-hover">
+    <thead class="thead-light">
+      <tr>
+        {% for col in filtered_table_data[0].keys() %}
+          <th>{{ col }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in filtered_table_data %}
+        <tr>
+          {% for value in row.values() %}
+            <td>{{ value }}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Export Buttons -->
+<div class="btn-group w-100 my-3" role="group" aria-label="Export Options">
+  <button type="button" class="btn btn-outline-primary" onclick="downloadPNG()">Export as PNG</button>
+  <button type="button" class="btn btn-outline-danger" onclick="downloadPDF()">Export as PDF</button>
+</div>
+
+  <!-- Export Scripts -->
+  <script>
+    function downloadPNG() {
+      const chartIds = ['onboarding_chart', 'attrition_chart', 'timeline_chart', 'reason_chart'];
+      chartIds.forEach(function(chartId) {
+        const chartDiv = document.getElementById(chartId);
+        if (chartDiv) {
+          Plotly.downloadImage(chartDiv, {
+            format: 'png',
+            filename: chartId + '_snapshot',
+            height: 600,
+            width: 900
+          });
+        }
+      });
+    }
+
+    async function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const chartIds = ['onboarding_chart', 'attrition_chart', 'timeline_chart', 'reason_chart'];
+      let y = 10;
+
+      for (const id of chartIds) {
+        const chart = document.getElementById(id);
+        if (chart) {
+          const imgData = await Plotly.toImage(chart, { format: 'png', height: 400, width: 600 });
+          doc.addImage(imgData, 'PNG', 10, y, 180, 100);
+          y += 110;
+        }
+      }
+
+      doc.save('HRM_Dashboard_Report.pdf');
+    }
+  </script>
+
+</body>
+</html>
+{% endblock %}
